@@ -2,6 +2,8 @@
 
 Conhecer tecnologias e aprender novos contextos é sempre revigorante e nada melhor para utilizar nesse momento do que um projeto brinquedo para testar os conhecimentos.
 
+O código completo desta implementação se encontra neste [link](https://github.com/Cadu-Rodrigues/vehicleapi)
+
 Neste post vamos destrinchar o mundo do Java para construção de API's com uma API de gerenciamento de veículos.
 Tecnologias Utilizadas:
 
@@ -386,4 +388,60 @@ Após isso inserimos nossa anotação que especifica que quando a rota /users fo
 Executando uma requisição para nossa rota temos esse resultado.
 ![Resultado de requisição para endpoint de usuários](/images/requisicao_users.png "Resultado de requisição para endpoint de usuários")
 *<center>Figura 4. Resultado de requisição para endpoint de usuários</center>*
+O postman é um cliente http muito útil para testar requisições e algumas funcionalidades dele  serão utilizadas mais a fundo nos próximos passos.
 
+Agora criaremos nossos controllers dos dois próximos endpoints.
+
+```Java
+package com.cadu.vehicleapi.controller;
+
+import java.net.URI;
+import java.util.List;
+
+import javax.validation.Valid;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import com.cadu.vehicleapi.controller.DTO.VehicleDTO;
+import com.cadu.vehicleapi.controller.DTO.mapper.VehicleMapper;
+import com.cadu.vehicleapi.controller.Form.VehicleForm;
+import com.cadu.vehicleapi.model.Vehicle;
+import com.cadu.vehicleapi.repository.UsersRepository;
+import com.cadu.vehicleapi.repository.VehiclesRepository;
+import com.cadu.vehicleapi.service.VehicleService;
+
+@RestController
+public class VehiclesController {
+
+    @Autowired
+    private VehiclesRepository repository;
+    @Autowired
+    private UsersRepository userRepository;
+
+    @GetMapping("/vehicles")
+    public List<VehicleDTO> listVehicles() throws Exception {
+        VehicleMapper mapper = new VehicleMapper();
+        List<Vehicle> vehicles = repository.findAll();
+        return mapper.convert(vehicles);
+    }
+
+    @PostMapping("/vehicles")
+    public ResponseEntity<VehicleDTO> createVehicle(@RequestBody @Valid VehicleForm form,
+            UriComponentsBuilder uriBuilder) throws Exception {
+        Vehicle vehicle = form.convert(form, userRepository);
+        VehicleService service = new VehicleService();
+        vehicle.value = service.getVehicleValue(vehicle);
+        this.repository.save(vehicle);
+        URI uri = uriBuilder.path("/vehicles/{id}").buildAndExpand(vehicle.id).toUri();
+        return ResponseEntity.created(uri).body(new VehicleDTO(vehicle));
+
+    }
+}
+
+```
