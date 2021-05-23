@@ -383,6 +383,7 @@ public class UsersController {
 }
 ```
 Neste trecho aqui inserimos a anotação que diz ao Spring que nossa classe é um controller da nossa API para que o spring se encarregue do mapeamento de nossas rotas, também injetamos nosso repository para que quando nosso controller seja criado os métodos do nosso repository estejam disponíveis.
+
 Após isso inserimos nossa anotação que especifica que quando a rota /users for chamada pelo método GET aquele método será executado, criamos uma lista de usuários e chamamos o método implementado pela JPA findAll() para retornar todos os usuários de nosso banco de dados, ciramos nosso mapper e retornamos o valor dessa conversão para a nossa rota.
 
 Executando uma requisição para nossa rota temos esse resultado.
@@ -507,6 +508,7 @@ public class UsersController {
 }
 ```
 Em nosso controller de usuários criamos nossa variável do tipo de nossa entidade e recebemos a conversão do valor mapeado pelo form, salvamos no banco de dados com o repository e retornamos o link de acesso daquele objeto como cabeçalho da resposta além de um DTO do usuário como corpo.
+
 Aqui e interessante notar que é necessário o uso da anotação @Valid para que o Spring faça nossa validação e que o objeto UserForm é automaticamente mapeado da requisição com a anotação @RequestBody.
 ```Java
 @RestController
@@ -545,3 +547,215 @@ Ao fazer nossas requisições temos o seguinte resultado:
 ![Resultado de requisição post para endpoint de veículo](/images/requisicao_vehiclespost.png "Resultado de requisição post para endpoint de veículo")
 *<center>Figura 8. Resultado de requisição post para endpoint de veículo</center>*
 
+## Fazendo a magia acontecer no service
+Finalmente chegamos à nossa camada de regra de negócio, aqui nós criamos as funções responsáveis por retornar o valor de um veículo de uma API externa e descobrir o dia de rodízio de um carro e se hoje é o dia de rodízio dele.
+### Testes unitários
+Inicialmente aqui nós temos uma especificação muito clara do que nossas funções devem fazer, na camada de negócio (que é onde implementamos nossas restrições e lógica que manipula e gera novos dados) é importante garantir que o que nossas funções retornam é o esperado delas.
+
+Por isso é um ótimo momento para utilizar o JUnit para criar testes que validem nossas funções e vejam se elas retornam o que deveriam retornar.
+
+Para isso criaremos nosso arquivo de testes no repositório criado por padrão pelo spring e criaremos os testes que validam o retorno do dia do rodízio de um veículo.
+```Java
+@SpringBootTest
+class VehicleServiceTests {
+	private VehicleService service = new VehicleService();
+
+	@Test
+	void shouldReturnTrueWhenIsRodizioDay() throws Exception {
+		User user = new User("Carlos", "carlosEmail@email.com", 1234, LocalDate.parse("2000-04-13"));
+		Vehicle vehicle = new Vehicle("ford", "fiesta", "2006", "9000", user);
+		VehicleDTO vehicleDTO = new VehicleDTO(vehicle);
+		assertTrue(service.getRodizioAtive(vehicleDTO, LocalDate.parse("2021-05-20")));
+	}
+
+	@Test
+	void shouldReturnFalseWhenIsNotRodizioDay() throws Exception {
+		User user = new User("Carlos", "carlosEmail@email.com", 1234, LocalDate.parse("2000-04-13"));
+		Vehicle vehicle = new Vehicle("ford", "fiesta", "2006", "9000", user);
+		VehicleDTO vehicleDTO = new VehicleDTO(vehicle);
+		assertFalse(service.getRodizioAtive(vehicleDTO, LocalDate.parse("2021-05-21")));
+	}
+
+}
+```
+Marcamos nossa classe como uma classe de teste do spring boot e cada função como um teste, criamos um teste para dizer se um carro cujo dia do rodízio é hoje está retornando true e um outro para dizer se um carro cujo dia do rodízio não é hoje está retornando false.
+
+Sempre necessário frisar que testar os casos falsos e Corner Cases (casos onde sua função não lida muito bem ou não são comuns) é importante para a correta validação do código.
+### Criando o service
+Temos nossos testes que validam o service, falta apenas o service :), brincadeiras a parte essa forma de abordagem evita que pensemos os testes para que o código seja aceito, ao invés de pensarmos o código para que passe nos testes, o que significa que teremos testes muito mais assertivos em sua proposta.
+
+A primeira parte a se codar são as funções que consomem a API externa.
+```Java
+@Service
+public class VehicleService {
+    @Autowired
+    public RestTemplate restTemplate;
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+
+    public VehicleService() {
+        this.restTemplate = new RestTemplate();
+    }
+
+    private final String baseURL = "https://parallelum.com.br/fipe/api/v1/carros/marcas";
+
+    public String getVehicleValue(Vehicle vehicle) throws Exception {
+        String brandCode = "";
+        String modelCode = "";
+        String year = "";
+        try {
+            brandCode = getBrandCode(vehicle.brand);
+            modelCode = getModelCode(brandCode, vehicle.model);
+            year = getYear(brandCode, modelCode, vehicle.year);
+        } catch (IllegalArgumentException exception) {
+            throw new Exception(exception);
+        }
+        String url = baseURL + "/" + brandCode + "/modelos/" + modelCode + "/anos/" + year;
+        FipeReturnValue result = restTemplate.getForObject(url, FipeReturnValue.class);
+        return result.valor;
+    }
+
+    public String getBrandCode(String brandName) throws IllegalArgumentException {
+        String result = "";
+        if (brandName == "")
+            throw new IllegalArgumentException("Brand name is invalid");
+        ResponseEntity<Brand[]> response = restTemplate.getForEntity(baseURL, Brand[].class);
+        Brand brands[] = response.getBody();
+        for (int i = 0; i < brands.length; i++) {
+            if (brands[i].nome.equals(brandName))
+                result = brands[i].codigo;
+        }
+        if (result == "")
+            throw new IllegalArgumentException("Brand name is invalid");
+        return result;
+    }
+
+    public String getModelCode(String brandCode, String modelName) throws IllegalArgumentException {
+        String result = "";
+        String URL = baseURL + "/" + brandCode + "/modelos";
+        if (brandCode == "")
+            throw new IllegalArgumentException("Brand name is invalid");
+        if (modelName == "")
+            throw new IllegalArgumentException("Model name is invalid");
+        ModelAndYear response = restTemplate.getForObject(URL, ModelAndYear.class);
+        Model models[] = response.modelos;
+        for (int i = 0; i < models.length; i++) {
+            if (models[i].nome.equals(modelName))
+                result = String.valueOf(models[i].codigo);
+        }
+        if (result == "")
+            throw new IllegalArgumentException("Model name is invalid");
+        return result;
+    }
+
+    public String getYear(String brandCode, String modelCode, String carYear) throws IllegalArgumentException {
+        String result = "";
+        String URL = baseURL + "/" + brandCode + "/modelos/" + modelCode + "/anos";
+        if (brandCode == "")
+            throw new IllegalArgumentException("Brand name invalid");
+        if (modelCode == "")
+            throw new IllegalArgumentException("Model name is invalid");
+        if (carYear == "")
+            throw new IllegalArgumentException("Vehicle year is invalid");
+        ResponseEntity<Year[]> response = restTemplate.getForEntity(URL, Year[].class);
+        Year years[] = response.getBody();
+        for (int i = 0; i < years.length; i++) {
+            if (years[i].nome.equals(carYear))
+                result = years[i].codigo;
+        }
+        if (result == "")
+            throw new IllegalArgumentException("Vehicle year is invalid");
+        return result;
+    }
+```
+Aqui temos 3 funções que servem para, dado seus atributos retornar da API um valor que posteriormente será utilizado para uma requisição, por exemplo retornar o código interno da API que identifica a marca VolksWagen, para depois utilizá-lo para descobrir o código que identifica o modelo AMAROK, depois descobrir seu ano e por fim seu valor na tabela FIPE.
+
+Aqui é importante ter exceptions que façam com que nosso código nos diga se tem algo errado principalmente com os parâmetros já que um parâmetro errado geraria um efeito em cascata e atrapalharia todo o funcionamento de nossa API.
+
+Após isso vamos nos focar em retornar o dia do rodízio e se o dia passado para o serviço é o dia do rodízio do carro.
+```Java
+    public String getRodizioDay(Vehicle vehicle) throws IllegalArgumentException {
+        String words[] = vehicle.year.split(" ");
+        String year = words[0];
+        if (year.substring(year.length() - 1).equals("0") || year.substring(year.length() - 1).equals("1"))
+            return DayOfWeek.MONDAY.getDisplayName(TextStyle.FULL, LocaleContextHolder.getLocale());
+        if (year.substring(year.length() - 1).equals("2") || year.substring(year.length() - 1).equals("3"))
+            return DayOfWeek.TUESDAY.getDisplayName(TextStyle.FULL, LocaleContextHolder.getLocale());
+        if (year.substring(year.length() - 1).equals("4") || year.substring(year.length() - 1).equals("5"))
+            return DayOfWeek.WEDNESDAY.getDisplayName(TextStyle.FULL, LocaleContextHolder.getLocale());
+        if (year.substring(year.length() - 1).equals("6") || year.substring(year.length() - 1).equals("7"))
+            return DayOfWeek.THURSDAY.getDisplayName(TextStyle.FULL, LocaleContextHolder.getLocale());
+        if (year.substring(year.length() - 1).equals("8") || year.substring(year.length() - 1).equals("9"))
+            return DayOfWeek.FRIDAY.getDisplayName(TextStyle.FULL, LocaleContextHolder.getLocale());
+        throw new IllegalArgumentException("Vehicle has an invalid year: " + vehicle.year);
+    }
+
+    public Boolean getRodizioAtive(VehicleDTO vehicle, LocalDate now) {
+        DayOfWeek dayOfWeek = now.getDayOfWeek();
+        return dayOfWeek.getDisplayName(TextStyle.FULL, LocaleContextHolder.getLocale()).equals(vehicle.rodizioDay);
+    }
+
+}
+```
+A ideia é puxar do ano do carro a parte inicial verificar o último dígito e baseado nisso retornar o dia em formato de string, aqui é interessante notar o uso do LocaleContextHolder que é uma implementação do spring que permite que o cliente mande pelo cabeçalho da requisição a linguagem que deseja receber suas respostas, portanto o dia retornado pela API será na linguagem requerida.
+
+A outra função apenas compara o dia passado como parâmetro com o dia de rodízio armazenado no veículo, caso sejam iguais retorna true senão retorna false.
+
+![Resultado de testes do service](/images/testes_com_sucesso.png "Resultado de testes do service")
+*<center>Figura 9. Resultado de testes do service</center>*
+
+![Retornando veículos em espanhol](/images/retornando_veículos_em_espanhol.png "Retornando veículos em espanhol")
+*<center>Figura 9. Retornando veículos em espanhol :)</center>*
+## Error Handling
+TERMINAMOS NOSSA API SOLTEM FOGOS!!!!!!!!!!!!!!!!!!
+
+Quê? não? como assim?
+
+Fizemos todo o caminho feliz contando com a boa vontade de nosso usuário em inserir e requerer dados da forma correta para que tudo dê certo.
+Mas e quando o mundo não for tão bonito assim?
+
+Para isso precisamos nos preparar para que quando nossa aplicação falhe nosso usuário saiba ao menos o que deu errado ao invés de receber logs confusos e infinitos.
+```Java
+@RestControllerAdvice
+public class ValidationHandler {
+    @Autowired
+    private MessageSource messageSource;
+
+    @ResponseStatus(code = HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public List<FormErrorDTO> handle(MethodArgumentNotValidException exception) {
+        List<FormErrorDTO> dto = new ArrayList<>();
+        List<FieldError> fieldErrors = exception.getBindingResult().getFieldErrors();
+        fieldErrors.forEach(e -> {
+            String message = messageSource.getMessage(e, LocaleContextHolder.getLocale());
+            FormErrorDTO erro = new FormErrorDTO(e.getField(), message);
+            dto.add(erro);
+        });
+        return dto;
+    }
+
+    @ResponseStatus(code = HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(IllegalArgumentException.class)
+    public String handle(IllegalArgumentException exception) {
+        String message = exception.getMessage();
+        return message;
+    }
+}
+```
+Para isso vamos criar interceptadores que quando um determinado tipo de erro seja encontrado uma mensagem amigável seja retornada ao consumidor da API.
+
+A principio tratamos 2 erros, quando o usuário passa strings vazias em nosso endpoint para POST, e para quando alguma coisa errada acontece em nossa busca na API, por exemplo nosso usuário ter passado uma marca inexistente.
+
+No primeiro caso criamos uma DTO para dizer como iremos retornar ao usuário nosso erro, aqui temos um campo que diz qual campo da requisição estava errado e um outro campo que armazena o erro propriamente dito.
+
+Após isso listados todos os erros que foram expelidos pela API em seu Bean Validation (lembra dele?) e para cada um deles armazenamos sua mensagem e a linguagem que o usuário nos passou, por fim retornamos essa lista de erros como um JSON.
+![Retornando erros em strings vazias](/images/erros_em_strings_vazias.png "Retornando erros em strings vazias")
+*<center>Figura 10. Retornando erros em strings vazias</center>*
+No segundo caso quando uma exceção de argumento inválido é lançada simplesmente retornamos o texto da exception que criamos no serviço.
+![Retornando erros em strings inválidas](/images/erro_valores_invalidos.png "Retornando erros em strings inválidas")
+*<center>Figura 11. Retornando erros em strings inválidas</center>*
+
+Agora sim temos nossa api funcional e pronta para uso, melhorias sempre são possíveis claro mas temos um bom começo aqui e podemos deixar nossa criatividade fluir como desenvolvedores pensando em novas funcionalidades ou melhorando nossa qualidade de código.
