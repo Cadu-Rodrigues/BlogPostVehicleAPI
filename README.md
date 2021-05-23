@@ -222,6 +222,7 @@ Finalizado isto teremos uma estrutura de diretórios parecida com isto:
 
 ![Estrutura de diretórios após criação dos arquivos de banco](/images/estrutura_de_diretorios.png "Estrutura de diretórios após criação dos arquivos de banco")
 *<center>Figura 1. Estrutura de diretórios após criação dos arquivos de banco</center>*
+
 Com isso quando subirmos nosso servidor nosso banco de dados terá dados iniciais e poderá ser acessado pelo link http://localhost:8080/h2-console.
 
 ![Tela de login do banco de dados acessado pelo navegador](/images/login_h2_console.png "Tela de login do banco de dados acessado pelo navegador")
