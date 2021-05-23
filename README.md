@@ -393,29 +393,122 @@ O postman é um cliente http muito útil para testar requisições e algumas fun
 Agora criaremos nossos controllers dos dois próximos endpoints.
 
 ```Java
-package com.cadu.vehicleapi.controller;
+@RestController
+public class VehiclesController {
 
-import java.net.URI;
-import java.util.List;
+    @Autowired
+    private VehiclesRepository repository;
 
-import javax.validation.Valid;
+    @GetMapping("/vehicles")
+    public List<VehicleDTO> listVehicles() throws Exception {
+        VehicleMapper mapper = new VehicleMapper();
+        List<Vehicle> vehicles = repository.findAll();
+        return mapper.convert(vehicles);
+    }
+}
+```
+```Java
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.util.UriComponentsBuilder;
+@RestController
+public class VehiclesFromUserController {
+    @Autowired
+    private UsersRepository usersRepository;
+    @Autowired
+    private VehiclesRepository vehiclesRepository;
 
-import com.cadu.vehicleapi.controller.DTO.VehicleDTO;
-import com.cadu.vehicleapi.controller.DTO.mapper.VehicleMapper;
-import com.cadu.vehicleapi.controller.Form.VehicleForm;
-import com.cadu.vehicleapi.model.Vehicle;
-import com.cadu.vehicleapi.repository.UsersRepository;
-import com.cadu.vehicleapi.repository.VehiclesRepository;
-import com.cadu.vehicleapi.service.VehicleService;
+    @GetMapping("/vehiclesUser/{cpf}")
+    public VehiclesFromUserDTO listVehiclesUser(@PathVariable int cpf) throws Exception {
+        UserDTO dto = new UserDTO();
+        User user = usersRepository.findByCPF(cpf);
+        List<Vehicle> vehicles = vehiclesRepository.findByOwnerCPF(cpf);
+        VehiclesFromUserDTO result = new VehiclesFromUserDTO(vehicles, user);
+        return result;
+    }
+}
+```
+Aqui no controller que retorna todos os veículos de um usuário estamos fazendo uso dos métodos que criamos pela interface de repository para acharmos um usuário pelo seu cpf e depois todos os veiculos cujo CPF de seu dono são iguais ao parâmetro passado.
 
+Testando o retorno temos. 
+![Resultado de requisição para endpoint de veículos](/images/requisicao_vehicles.png "Resultado de requisição para endpoint de veículos")
+*<center>Figura 5. Resultado de requisição para endpoint de veículos</center>*
+![Resultado de requisição para endpoint de veículos de um usuário](/images/requisicao_vehiclesfromuser.png "Resultado de requisição para endpoint de veículos de um usuário")
+*<center>Figura 6. Resultado de requisição para endpoint de veículos de um usuário</center>*
+
+Nesse retorno temos um pequeno spoiler sobre nosso serviço mas a gente chega lá, agora o próximo problema é como criar novos veículos e usuários.
+## Inserindo dados pelo nosso controller
+Agora precisamos inserir dados pelo nosso controller então precisaremos do método POST, porém quando recebermos dados do nosso cliente é necessário formatar isto em classes também, e se o que precisar ser cadastrado for diferente do que retornamos em nossos DTO's?
+## Classes Form
+Para separar os arquivos que tratam de retorno de dados ao nosso usuário e os arquivos que se referem aos dados que o cliente nos envia para salvar criaremos classes novas chamadas de form's.
+```Java
+public class UserForm {
+    @NotNull
+    @NotEmpty
+    public String name;
+    @NotNull
+    @NotEmpty
+    @Email
+    public String email;
+    @NotNull
+    private int CPF;
+    @NotNull
+    public LocalDate birthDate;
+
+    public User convert(UserForm form) {
+        return new User(form.name, form.email, form.CPF, form.birthDate);
+    }
+}
+```
+```Java
+public class VehicleForm {
+    @NotNull
+    @NotEmpty
+    public String brand;
+    @NotNull
+    @NotEmpty
+    public String model;
+    @NotNull
+    @NotEmpty
+    public String year;
+    @NotNull
+    public int ownerCPF;
+
+    public Vehicle convert(VehicleForm form, UsersRepository repository) {
+        User user = repository.findByCPF(form.ownerCPF);
+        return new Vehicle(form.brand, form.model, form.year, "0", user);
+    }
+}
+```
+## Bean Validation
+Essas anotações dentro dos nossos forms nos dizem quais restrições são aplicadas a cada campo da classe, isso é uma abordagem muito interessante de velidação do java afinal elimina muito código que seria necessário para esse tipo de validação em nossos controllers sendo necessário apenas um pequeno conjunto de anotações em cada classe de upload de dados e dizer ao nosso controller para validar aqueles valores.
+
+## Escrevendo os endpoints
+Agora em nossos endpoints vamos escrever o mapeamento das requisições que inserem novos dados no banco.
+```Java
+@RestController
+public class UsersController {
+    @Autowired
+    private UsersRepository repository;
+
+    @GetMapping("/users")
+    public List<UserDTO> listUsers() {
+        List<User> users = repository.findAll();
+        UserMapper mapper = new UserMapper();
+        return mapper.convert(users);
+    }
+
+    @PostMapping("/users")
+    public ResponseEntity<UserDTO> createUser(@RequestBody @Valid UserForm form, UriComponentsBuilder uriBuilder) {
+        User user = form.convert(form);
+        this.repository.save(user);
+        URI uri = uriBuilder.path("/users/{id}").buildAndExpand(user.id).toUri();
+        return ResponseEntity.created(uri).body(new UserDTO(user));
+    }
+
+}
+```
+Em nosso controller de usuários criamos nossa variável do tipo de nossa entidade e recebemos a conversão do valor mapeado pelo form, salvamos no banco de dados com o repository e retornamos o link de acesso daquele objeto como cabeçalho da resposta além de um DTO do usuário como corpo.
+Aqui e interessante notar que é necessário o uso da anotação @Valid para que o Spring faça nossa validação e que o objeto UserForm é automaticamente mapeado da requisição com a anotação @RequestBody.
+```Java
 @RestController
 public class VehiclesController {
 
@@ -443,5 +536,12 @@ public class VehiclesController {
 
     }
 }
-
 ```
+Já em nossa implementação de veículos poucas mudanças exceto o uso do serviço externo VehicleService novamente para retornar o valor do veículo.
+
+Ao fazer nossas requisições temos o seguinte resultado:
+![Resultado de requisição post para endpoint de usuário](/images/requisicao_userspost.png "Resultado de requisição post para endpoint de usuário")
+*<center>Figura 7. Resultado de requisição post para endpoint de usuário</center>*
+![Resultado de requisição post para endpoint de veículo](/images/requisicao_vehiclespost.png "Resultado de requisição post para endpoint de veículo")
+*<center>Figura 8. Resultado de requisição post para endpoint de veículo</center>*
+
