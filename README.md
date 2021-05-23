@@ -384,4 +384,6 @@ Neste trecho aqui inserimos a anotação que diz ao Spring que nossa classe é u
 Após isso inserimos nossa anotação que especifica que quando a rota /users for chamada pelo método GET aquele método será executado, criamos uma lista de usuários e chamamos o método implementado pela JPA findAll() para retornar todos os usuários de nosso banco de dados, ciramos nosso mapper e retornamos o valor dessa conversão para a nossa rota.
 
 Executando uma requisição para nossa rota temos esse resultado.
+![Resultado de requisição para endpoint de usuários](/images/requisicao_users.png "Resultado de requisição para endpoint de usuários")
+*<center>Figura 4. Resultado de requisição para endpoint de usuários</center>*
 
