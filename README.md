@@ -812,4 +812,5 @@ No segundo caso quando uma exceção de argumento inválido é lançada simplesm
 Voilá, temos uma API que trata seus erros e se preocupa com informar seus consumidores com mensagens que o ajudem a entender o que ocorreu.
 
 Espero que esse post tenha ajudado a mostrar formas de abordar a construção de uma API REST, alguns problemas comuns e ajude a entender para que servem as principais tecnologias desse universo.
+
 É importante levar em consideração o contexto de sua aplicação sempre para tomar as melhores decisões sobre tecnologias e formas de lidar com determinadas situações, então tudo que está aqui descrito é um grande depende e está condicionado a nosso domínio da aplicação.
