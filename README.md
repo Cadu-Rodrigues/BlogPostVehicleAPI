@@ -190,16 +190,23 @@ INSERT INTO Vehicles (Brand, Model, Year, Value, Owner_id)
 VALUES ('Ford','Ka 1.0 8V/1.0 8V ST Flex 3p','2013 Gasolina','30000',1;
 ```
 Finalizado isto teremos uma estrutura de diretórios parecida com isto:
-
-![Estrutura de diretórios após criação dos arquivos de banco](/images/estrutura_de_diretorios.png "Estrutura de diretórios após criação dos arquivos de banco")
-*<center>Figura 1. Estrutura de diretórios após criação dos arquivos de banco</center>*
+<figure>
+  <img src="/images/estrutura_de_diretorios.png" alt="Estrutura de diretórios após criação dos arquivos de banco"/>
+  <figcaption>Figura 1. Estrutura de diretórios após criação dos arquivos de banco</figcaption>
+</figure>
 
 Assim, quando subirmos nosso servidor, o banco de dados terá dados iniciais e poderá ser acessado pelo link http://localhost:8080/h2-console.
 
-![Tela de login do banco de dados acessado pelo navegador](/images/login_h2_console.png "Tela de login do banco de dados acessado pelo navegador")
-*<center>Figura 2. Tela de login do banco de dados acessado pelo navegador</center>*
-![Interface do banco de dados em utilização](/images/tela_h2_em_funcionamento.png "Interface do banco de dados em utilização")
-*<center>Figura 3. Interface do banco de dados em utilização</center>*
+<figure>
+  <img src="/images/login_h2_console.png" alt="Tela de login do banco de dados acessado pelo navegador"/>
+  <figcaption>Figura 2. Tela de login do banco de dados acessado pelo navegador</figcaption>
+</figure>
+
+<figure>
+  <img src="/images/tela_h2_em_funcionamento.png" alt="Interface do banco de dados em utilização"/>
+  <figcaption>Figura 3. Interface do banco de dados em utilização</figcaption>
+</figure>
+
 ## Acessando o banco de dados 
 Para acessar nossos dados, precisamos ler essas entidades e enviar os resultados dela para nosso usuário por meio dos endpoints de nossa API.
 
@@ -293,6 +300,7 @@ public class VehicleDTO {
     }
 }
 ```
+* Classe VehiclesFromUserDTO
 ```Java
 public class VehiclesFromUserDTO {
     public String ownerName;
@@ -379,8 +387,11 @@ A partir disso:
 * Instanciamos nosso mapper e retornamos o valor dessa conversão para a nossa rota.
 
 Executando uma requisição para nossa rota temos esse resultado:
-![Resultado de requisição para endpoint de usuários](/images/requisicao_users.png "Resultado de requisição para endpoint de usuários")
-*<center>Figura 4. Resultado de requisição para endpoint de usuários</center>*
+<figure>
+  <img src="/images/requisicao_users.png" alt="Resultado de requisição para endpoint de usuários"/>
+  <figcaption>Figura 4. Resultado de requisição para endpoint de usuários</figcaption>
+</figure>
+
 O [Postman](https://www.postman.com/product/api-client/) é um aplicativo para fazer solicitações HTTP muito útil para testar requisições e algumas funcionalidades dele  serão utilizadas mais a fundo nos próximos passos.
 
 Agora criaremos nossos controllers dos dois próximos endpoints.
@@ -422,10 +433,15 @@ public class VehiclesFromUserController {
 Aqui no VehiclesFromUserController, estamos fazendo uso dos métodos que criamos pela interface de repository para acharmos um usuário pelo seu CPF e depois todos os veiculos cujo CPF de seu dono são iguais ao parâmetro passado.
 
 Testando o retorno temos. 
-![Resultado de requisição para endpoint de veículos](/images/requisicao_vehicles.png "Resultado de requisição para endpoint de veículos")
-*<center>Figura 5. Resultado de requisição para endpoint de veículos</center>*
-![Resultado de requisição para endpoint de veículos de um usuário](/images/requisicao_vehiclesfromuser.png "Resultado de requisição para endpoint de veículos de um usuário")
-*<center>Figura 6. Resultado de requisição para endpoint de veículos de um usuário</center>*
+<figure>
+  <img src="/images/requisicao_vehicles.png" alt="Resultado de requisição para endpoint de veículos"/>
+  <figcaption>Figura 5. Resultado de requisição para endpoint de veículos</figcaption>
+</figure>
+
+<figure>
+  <img src="/images/requisicao_vehiclesfromuser.png" alt="Resultado de requisição para endpoint de veículos de um usuário"/>
+  <figcaption>Figura 6. Resultado de requisição para endpoint de veículos de um usuário</figcaption>
+</figure>
 
 Nesse retorno temos um pequeno spoiler sobre nosso serviço mas a gente chega lá, agora o próximo problema é como criar novos veículos e usuários.
 ## Inserindo dados pelo controller
@@ -545,10 +561,15 @@ public class VehiclesController {
 Já em nossa implementação de veículos poucas mudanças exceto o uso do serviço externo VehicleService novamente para retornar o valor do veículo.
 
 Ao fazer nossas requisições temos o seguinte resultado:
-![Resultado de requisição post para endpoint de usuário](/images/requisicao_userspost.png "Resultado de requisição post para endpoint de usuário")
-*<center>Figura 7. Resultado de requisição post para endpoint de usuário</center>*
-![Resultado de requisição post para endpoint de veículo](/images/requisicao_vehiclespost.png "Resultado de requisição post para endpoint de veículo")
-*<center>Figura 8. Resultado de requisição post para endpoint de veículo</center>*
+<figure>
+  <img src="/images/requisicao_userspost.png" alt="Resultado de requisição post para endpoint de usuário"/>
+  <figcaption>Figura 7. Resultado de requisição post para endpoint de usuário</figcaption>
+</figure>
+
+<figure>
+  <img src="/images/requisicao_vehiclespost.png" alt="Resultado de requisição post para endpoint de veículo"/>
+  <figcaption>Figura 8. Resultado de requisição post para endpoint de veículo</figcaption>
+</figure>
 
 ## Fazendo a magia acontecer no service
 Finalmente chegamos à nossa camada de regra de negócio, aqui nós criamos as funções responsáveis por retornar o valor de um veículo de uma API externa e descobrir o dia de rodízio de um carro e se hoje é o dia de rodízio dele.
@@ -710,11 +731,16 @@ A ideia é puxar do ano do carro a parte inicial, verificar o último dígito e 
 
 A outra função apenas compara o dia passado como parâmetro com o dia de rodízio armazenado no veículo, caso sejam iguais retorna true senão retorna false.
 
-![Resultado de testes do service](/images/testes_com_sucesso.png "Resultado de testes do service")
-*<center>Figura 9. Resultado de testes do service</center>*
+<figure>
+  <img src="/images/testes_com_sucesso.png" alt="Resultado de testes do service"/>
+  <figcaption>Figura 9. Resultado de testes do service</figcaption>
+</figure>
 
-![Retornando veículos em espanhol](/images/retornando_veículos_em_espanhol.png "Retornando veículos em espanhol")
-*<center>Figura 9. Retornando veículos em espanhol :)</center>*
+<figure>
+  <img src="/images/retornando_veículos_em_espanhol.png" alt="Retornando veículos em espanhol"/>
+  <figcaption>Figura 10. Retornando veículos em espanhol :)</figcaption>
+</figure>
+
 ## Error Handling
 TERMINAMOS NOSSA API SOLTEM FOGOS!!!!!!!!!!!!!!!!!!
 
@@ -759,11 +785,16 @@ A principio tratamos 2 erros, quando o usuário passa strings vazias em nosso en
 No primeiro caso criamos uma DTO para dizer como iremos retornar ao usuário nosso erro, aqui temos um campo que diz qual campo da requisição estava errado e um outro campo que armazena a mensagem que descreve o erro.
 
 Posteriormente, listados todos os erros que foram expelidos pela API, em seu Bean Validation (lembra dele?), para cada erro armazenamos sua mensagem e a linguagem que o usuário nos passou, finalmente retornamos essa lista de erros como um JSON.
-![Retornando erros em strings vazias](/images/erros_em_strings_vazias.png "Retornando erros em strings vazias")
-*<center>Figura 10. Retornando erros em strings vazias</center>*
-No segundo caso quando uma exceção de argumento inválido é lançada simplesmente retornamos o texto da exception que criamos no serviço.
-![Retornando erros em strings inválidas](/images/erro_valores_invalidos.png "Retornando erros em strings inválidas")
-*<center>Figura 11. Retornando erros em strings inválidas</center>*
+
+<figure>
+  <img src="/images/erros_em_strings_vazias.png" alt="Retornando erros em strings vazias"/>
+  <figcaption>Figura 11. Retornando erros em strings vazias :)</figcaption>
+</figure>
+
+<figure>
+  <img src="/images/erro_valores_invalidos.png" alt="Retornando erros em strings inválidas"/>
+  <figcaption>Figura 12. Retornando erros em strings inválidas :)</figcaption>
+</figure>
 
 Voilá, temos uma API que trata seus erros e se preocupa com informar seus consumidores com mensagens que o ajudem a entender o que ocorreu.
 
