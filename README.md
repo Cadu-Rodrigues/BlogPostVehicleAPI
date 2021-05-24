@@ -1,5 +1,7 @@
 # Criando uma API REST com Spring Boot + Hibernate
-Consumir dados de terceiros é uma parte crucial do desenvolvimento de aplicações web, para isso desenvolvedores disponibilizam rotinas em um formato padronizado que chamamos  de API's (Aplication Program Interface), que são interfaces responsáveis por disponibilizar dados de um software a um outro software, atualmente a arquitetura REST é utilizada para retornar nossos dados estruturados com mensagens significativas.
+>Este texto está também disponível neste [repositório do github](https://github.com/Cadu-Rodrigues/BlogPostVehicleAPI)
+
+Consumir dados de terceiros é uma parte crucial do desenvolvimento de aplicações web, para isso desenvolvedores disponibilizam rotinas em um formato padronizado que chamamos  de [API's](https://www.redhat.com/pt-br/topics/api/what-is-a-rest-api) (Aplication Program Interface), que são interfaces responsáveis por disponibilizar dados de um software a um outro software, atualmente a arquitetura REST é utilizada para retornar nossos dados estruturados com mensagens significativas.
 
 Juntando essa necessidade e uma das linguagens mais utilizadas no mundo nasce o Spring, um framework para desenvolvimento de aplicações java em várias plataformas diferentes, cuja especificação Spring Boot,voltada para web, é uma das tecnologias mais difundidas para esse intuito.
 
