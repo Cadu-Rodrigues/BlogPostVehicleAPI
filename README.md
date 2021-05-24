@@ -7,7 +7,7 @@ Juntando essa necessidade e uma das linguagens mais utilizadas no mundo nasce o 
 
 Neste post vamos construir uma API baseada em um projeto brinquedo, cujo objetivo é gerenciar veículos, para entendermos melhor como e porque utilizar essa stack de tecnologias.
 
-O código completo desta implementação se encontra neste [link](https://github.com/Cadu-Rodrigues/vehicleapi)
+O código completo desta implementação se encontra neste [repositório do github](https://github.com/Cadu-Rodrigues/vehicleapi)
 Tecnologias Utilizadas:
 
 * Maven: Nosso gerenciador de pacotes, seu papel é fazer toda a instalação de bibliotecas/dependências que não venham por padrão no java.
