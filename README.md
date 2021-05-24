@@ -120,11 +120,17 @@ Para isso declaramos uma lista de entidades vehicle em nossa entidade user e uma
 
 Para finalizar nossas entidades declaramos nossos métodos construtores, sempre lembrando que o Spring JPA necessita de um construtor vazio declarado para realizar de forma correta seu mapeamento.
 ## Criando o banco de dados em memória
-Bom nosso modelo agora mapeia nossas classes para as tabelas do banco de dados... mas que banco de dados? afinal ainda não criamos nada que seja utilizado por esse mapeamento como banco de dados. Bom ai que entra nosso querido H2, poderiam ser utilizados vários bancos de dados aqui você provavelmente deve conhecer vários como MySQL,SQL Server, Mongodb etc, porém como queremos nos concentrar na API e na usabilidade a ideia é utilizar um banco de dados que seja descartável e demande pouco esforço.
+Bom, nosso modelo agora mapeia nossas classes para as tabelas do banco de dados... mas que banco de dados? Afinal, ainda não criamos nada que seja utilizado por esse mapeamento como banco de dados. 
+
+Ai que entra o H2! Escolhemos o H2, por ser um banco de dados mais simples de subir, pois demanda pouca configuração e é descartável após o servidor ser desligado. Assim podemos nos concentrar na API, que é o foco do nosso estudo.
 
 Considerando esses pontos utilizaremos o H2 como um banco de dados em memória, isso significa que quando o nosso servidor for iniciado criaremos um banco de dados ali na memória para ser utilizado temporariamente e que quando nosso servidor for desligado ou reiniciado ele deixará de existir.
-E como fazer isso? Bom o spring nos ajuda dentro do diretório resources existe o arquivo de configuração application.properties em que podemos definir nossas configurações de banco de dados para uso do Hibernate.
-``` 
+
+E como fazer isso? o Spring por padrão escaneia o diretório resources,
+caso exista o arquivo de configuração application.properties, ele o utiliza para definir configurações do banco de dados e os drivers de acesso para uso do Hibernate.
+
+Veja a seguir nossa configuração do arquivo application.properties:
+``` Properties
 spring.datasource.driverClassName=org.h2.Driver
 spring.datasource.url=jdbc:h2:mem:vehicledb
 spring.datasource.username=sa
@@ -138,9 +144,10 @@ spring.jpa.hibernate.ddl-auto=update
 spring.h2.console.enabled=true
 spring.h2.console.path=/h2-console
 ```
-Nele dizemos quais drivers utilizar para criar uma url de acesso e criá-lo em memória o username e password e de quebra conseguimos declarar até uma URL para acesso a interface gráfica do banco.
+Neste arquivo definimos quais drivers de banco de dados utilizar, a url em que o banco será criado (neste caso utilizamos esse campo para definir a criação do banco em memória no servidor ao invés de um diretório fixo de arquivos ou um servidor externo), o nome de usuário e senha de acesso ao banco e de quebra declarar uma url dentro de nossa api para que tenhamos acesso a uma interface gráfico de uso do banco.
 
-Bom tudo bem bonito mas como inserimos nossos dados e tabelas? Mais uma vez o spring salva nossa vida, por padrão o spring executa nesse mesmo diretório resources o arquivo como nome data.sql, basta criar este arquivo com os códigos SQL que queremos executar em nosso banco e a magia ocorre.
+### Inserindo dados e tabelas no banco
+Tudo bem bonito mas como inserimos nossos dados e tabelas? Mais uma vez o Spring salva nossa vida, por padrão ele executa nesse mesmo diretório resources o arquivo como nome data.sql, basta criar este arquivo com os códigos SQL que queremos executar em nosso banco e a magia ocorre.
 ```SQL
 DROP TABLE IF EXISTS Users CASCADE;
 
@@ -231,16 +238,25 @@ Finalizado isto teremos uma estrutura de diretórios parecida com isto:
 ![Estrutura de diretórios após criação dos arquivos de banco](/images/estrutura_de_diretorios.png "Estrutura de diretórios após criação dos arquivos de banco")
 *<center>Figura 1. Estrutura de diretórios após criação dos arquivos de banco</center>*
 
-Com isso quando subirmos nosso servidor nosso banco de dados terá dados iniciais e poderá ser acessado pelo link http://localhost:8080/h2-console.
+Assim, quando subirmos nosso servidor, o banco de dados terá dados iniciais e poderá ser acessado pelo link http://localhost:8080/h2-console.
 
 ![Tela de login do banco de dados acessado pelo navegador](/images/login_h2_console.png "Tela de login do banco de dados acessado pelo navegador")
 *<center>Figura 2. Tela de login do banco de dados acessado pelo navegador</center>*
 ![Interface do banco de dados em utilização](/images/tela_h2_em_funcionamento.png "Interface do banco de dados em utilização")
 *<center>Figura 3. Interface do banco de dados em utilização</center>*
 ## Acessando o banco de dados 
-E agora como puxar os dados do banco? precisamos consumir essas entidades e mandar os resultados dela para nosso usuário por meio dos endipoints de nossa API,para isso vamos utilizar o padrão repository em que isolamos o código de acesso ao banco de dados em uma classe específica (uma para cada funcionalidade) a fim de desacoplar código e aproveitar das interfaces de auxílio da JPA.
+Para acessar nossos dados, precisamos ler essas entidades e enviar os resultados dela para nosso usuário por meio dos endpoints de nossa API.
 
-Classe repository de usuários
+Para isso, vamos utilizar o padrão repository, em que isolamos o código de acesso ao banco de dados em uma classe específica (uma para cada funcionalidade), a fim de desacoplar código e aproveitar das
+interfaces de auxílio da JPA.
+
+Nesse momento criaremos dois respositorys (um para cada entidade) e é onde a implementaçãp da JPA nos ajuda. Nossos repositorys serão apenas interfaces que implementam a JpaRepository, isso significa que os métodos dessa classe serão todos implementados pelo próprio Spring, estes métodos fazem operações básicas e extremamente corriqueiras como criar, retornar, modificar, e deletar um objeto do banco de dados o que abstrai lógica repetitiva e gera menos código escrito.
+
+Para implementar uma JpaRepository é necessário passar como parâmetros a entidade a ser manipulada e o tipo da chave primária dela em nosso mapeamento.
+
+Por ser uma interface que implementa uma classe do Spring JPA dentro de nosso repository só podemos criar assinaturas de funções, e aqui temos uma funcionalidade muito interessante do framework, caso declaremos uma assinatura cujo nome seja um dos métodos implementados (findBy por exemplo) seguido por um atributo da entidade (no caso cpf), a biblioteca consegue gerar esse método baseado na implementação ja existente (no caso findById) e adaptar a execução para utilizar o atributo requerido. 
+
+* Classe repository de usuários:
 ``` Java
 public interface UsersRepository extends JpaRepository<User, Long> {
 
@@ -248,7 +264,7 @@ public interface UsersRepository extends JpaRepository<User, Long> {
 
 }
 ```
-Classe repository de veículos
+* Classe repository de veículos:
 ```Java
 public interface VehiclesRepository extends JpaRepository<Vehicle, Long> {
 
@@ -256,18 +272,24 @@ public interface VehiclesRepository extends JpaRepository<Vehicle, Long> {
 
 }
 ```
-Aqui temos nossos dois repositorys e é onde a implementação da JPA do Spring se faz valer, com ela quando instanciarmos o repository ele terá implementado todos os métodos da JpaRepository, esses métodos fazem operações básicas como criar modificar remover e retornar objetos do nosso banco de dados, abstraindo essa lógica e reduzindo código repetitivo no acesso ao banco de dados, necessitando apenas da Entidade que será consumida e do tipo do identificador único dela.
-Além disso conseguimos criar métodos próprios descrevendo apenas a assinatura do método, para isso basta seguirmos o padrão da biblioteca como por exemplo na função *findByCPF* e completarmos o nome com o campo que queremos manipular com a função (neste caso CPF).
+É importante destacar que, caso o atributo seja de uma entidade dentro da entidade do repository (o cpf dentro do user que está mapeado em vehicle por exemplo), a entidade precisa ser passada na assinatura do método antes do atributo.
 
-Caso o retorno seja de um campo dentro de uma entidade relacionada como no segundo repository, precisamos mapear no nome a entidade que será acessada e o campo dentro dela para que o mapeamento se dê corretamente, vale ressaltar que para evitar ambiguidades caso exista um campo na entidade "mãe" cujo nome seja igual ao retorno de Entidade + Nome campo (caso houvesse um campo OwnerCPF na entidade Vehicle por exemplo) a ambiguidade pode ser retirada pelo uso do _ entre a entidade e o campo.
+Também é possível que esse relacionamento gere uma ambiguidade caso a assinatura do método possa ser a mesma para um atributo de uma entidade relacionada e um atributo da entidade inicial (por exemplo caso houvesse um atributo OwnerCPF em vehicle), nesse caso a diferenciação pode ser demarcada no método que utiliza a entidade + atributo em sua assinatura separando por _.
 
-Aqui já temos os nossos repositorys para acesso ao banco agora precisamos consumi-lo e retornar nossos dados.
+Pronto, temos os nossos repositorys para acesso ao banco e agora precisamos consumi-lo para retornar seus dados.
+
 ## Exibindo dados ao cliente
-Finalmente a hora de ver coisas funcionando (já estava na hora né), agora precisamos acessar nosso repository e os métodos que essas interfaces implementam e exibi-los para nosso usuário, ou seja precisamos criar nossos endpoints.
+Finalmente a hora de ver coisas funcionando (já estava na hora né?). Agora precisamos acessar nosso repository, os métodos que essas interfaces implementam e exibi-los para nosso usuário, ou seja precisamos criar nossos endpoints.
 
-Em nossos endpoints a ideia é consumir nosso repository relativo àquele endpoint e aqui temos um detalhe interessante, imagine que nossa entidade contenha campos que não deveriam ser expostos numa API pública, por exemplo se armazenassemos a senha na entidade ou se quisessemos que o CPF não fosse um atributo publico, retornar apenas a entidade para o cliente poderia gerar problemas e por isso criaremos classes DTO.
+Em nossos endpoints a ideia é acessar o repository relativo àquele endpoint, executar seus métodos e retornar os valores em um formato amigável ao cliente.
+
+Considerando que vamos retornar dados é possível que nem todos os atributos de nossa entidade sejam pertinentes a essa resposta, imagine retornar um id do banco de dados ou um campo senha em nossa API como não seria problemático.
+Pensando nisso criaremos classes DTO(Data Transfer Objects).
 ### Classes DTO
-A ideia aqui é criar uma visualização especifíca da nossa entidade e retornar um objeto deste tipo para que acessa nosso endpoint, isso desacopla o retorno de dados das nossas entidades da JPA e possibilita que tenhamos diferentes objetos de retorno para a mesma entidade.
+A ideia aqui é criar uma visualização especifíca da nossa entidade e retornar um objeto deste tipo para quem acessa nosso endpoint, isso desacopla o retorno de dados das nossas entidades da JPA e possibilita que tenhamos diferentes objetos de retorno para a mesma entidade (por exemplo caso um determinado endpoint deva retornar um veículo sem seu valor no futuro).
+
+Implementação das classes DTO:
+* Classe UserDTO
 ```Java
 public class UserDTO {
     public String name;
@@ -288,6 +310,7 @@ public class UserDTO {
 
 }
 ```
+* Classe VehicleDTO
 ```Java
 public class VehicleDTO {
     public String brand;
@@ -327,12 +350,14 @@ public class VehiclesFromUserDTO {
     }
 }
 ```
-Cada DTO nossa possui um construtor que recebe seu correspondente em entidade e armazena os dados necessários em si, no caso do DTO de veículos os campos rodizioDay e rodizioIsAtive recebem valores calculados em uma implementação que veremos mais à frente.
-Além disso temos um novo tipo declasse utilizada aqui que são os mappers.
+Cada DTO possui um construtor que recebe seu correspondente em entidade e armazena os dados necessários em si mesma. No caso do DTO de veículos, os campos *rodizioDay* e *rodizioIsAtive* recebem valores calculados em uma implementação que veremos mais à
+frente. Além disso, temos um novo tipo de classe utilizada aqui, os mappers.
 
 ### Classes Mapper
-Em nossa implementação da API precisaremos passar uma lista de veículos e receber uma lista de DTO, cada DTO sendo um veículo com seus dados, para isso criaremos classes que possuam métodos que convertam nossa lista de usuários e isolaremos isso em classes que chamaremos de mapper.
+Em nossa API convertemos entidades em DTO para retorná-las nos endpoints, quando é apenas um objeto para ser convertido nosso construtor resolve o problema, mas e quando temos objetos mais complexos necessitando dessa conversão como por exemplo uma lista de entidades?
 
+A partir desse problema criamos mappers que são classes encarregadas de implementar essas conversões e isolar esse código de nosso DTO.
+* Mapper de usuários
 ```Java
 public class UserMapper {
     public List<UserDTO> convert(List<User> vehicles) {
@@ -349,6 +374,7 @@ public class UserMapper {
     }
 }
 ```
+* Mapper de veículos
 ```Java
 public class VehicleMapper {
     private VehicleService vehicleService = new VehicleService();
@@ -371,9 +397,10 @@ public class VehicleMapper {
 
 }
 ```
-Aqui novamente precisaremos de nosso serviço inserindo dados específicos mass neste momento estamos prontos para criar os endpoints.
+Novamente precisaremos de nosso serviço inserindo dados específicos, mas a boa notícia é que estamos prontos para criar os endpoints da API.
 ## Criando os endpoints de retorno 
-Agora finalmente criaremos nossos controllers que são as classes que o spring irá chamar de acordo com a URL mapeada, neste primeiro momento criaremos os 3 endpoints de retorno, que mapeiam veículos,usuários e todos os veículos de um determinado usuário dado seu CPF.
+Agora, finalmente, criaremos nossos controllers, que são as classes que o Spring irá mapear (e que são nossos endpoints, afinal) de acordo com a URL desejada. Neste primeiro momento, criaremos os 3 endpoints de retorno, que enviam veículos, usuários e todos os veículos de um determinado usuário dado seu CPF para o cliente.
+* Controller de Usuários
 ```Java
 @RestController
 public class UsersController {
@@ -388,17 +415,20 @@ public class UsersController {
     }
 }
 ```
-Neste trecho aqui inserimos a anotação que diz ao Spring que nossa classe é um controller da nossa API para que o spring se encarregue do mapeamento de nossas rotas, também injetamos nosso repository para que quando nosso controller seja criado os métodos do nosso repository estejam disponíveis.
+Neste trecho, inserimos a anotação que diz ao Spring que a classe é um controller da API, para que o spring se encarregue do mapeamento de nossos endpoints. Também injetamos nosso repository, afim de que quando nosso controller seja criado, os métodos do nosso repository estejam disponíveis.
 
-Após isso inserimos nossa anotação que especifica que quando a rota /users for chamada pelo método GET aquele método será executado, criamos uma lista de usuários e chamamos o método implementado pela JPA findAll() para retornar todos os usuários de nosso banco de dados, ciramos nosso mapper e retornamos o valor dessa conversão para a nossa rota.
+Após isso inserimos nossa anotação que especifica que quando o endpont /users for chamado pelo verbo GET aquele método será executado. 
+A partir disso:
+* Criamos uma lista de usuários e chamamos o método implementado pela JPA findAll() para retornar todos os usuários de nosso banco de dados.
+* Instanciamos nosso mapper e retornamos o valor dessa conversão para a nossa rota.
 
-Executando uma requisição para nossa rota temos esse resultado.
+Executando uma requisição para nossa rota temos esse resultado:
 ![Resultado de requisição para endpoint de usuários](/images/requisicao_users.png "Resultado de requisição para endpoint de usuários")
 *<center>Figura 4. Resultado de requisição para endpoint de usuários</center>*
-O postman é um cliente http muito útil para testar requisições e algumas funcionalidades dele  serão utilizadas mais a fundo nos próximos passos.
+O [Postman](https://www.postman.com/product/api-client/) é um aplicativo para fazer solicitações HTTP muito útil para testar requisições e algumas funcionalidades dele  serão utilizadas mais a fundo nos próximos passos.
 
 Agora criaremos nossos controllers dos dois próximos endpoints.
-
+* Controller de veículos
 ```Java
 @RestController
 public class VehiclesController {
@@ -414,8 +444,8 @@ public class VehiclesController {
     }
 }
 ```
+* Controller de veículos de um usuário
 ```Java
-
 @RestController
 public class VehiclesFromUserController {
     @Autowired
@@ -433,7 +463,7 @@ public class VehiclesFromUserController {
     }
 }
 ```
-Aqui no controller que retorna todos os veículos de um usuário estamos fazendo uso dos métodos que criamos pela interface de repository para acharmos um usuário pelo seu cpf e depois todos os veiculos cujo CPF de seu dono são iguais ao parâmetro passado.
+Aqui no VehiclesFromUserController, estamos fazendo uso dos métodos que criamos pela interface de repository para acharmos um usuário pelo seu CPF e depois todos os veiculos cujo CPF de seu dono são iguais ao parâmetro passado.
 
 Testando o retorno temos. 
 ![Resultado de requisição para endpoint de veículos](/images/requisicao_vehicles.png "Resultado de requisição para endpoint de veículos")
@@ -442,10 +472,11 @@ Testando o retorno temos.
 *<center>Figura 6. Resultado de requisição para endpoint de veículos de um usuário</center>*
 
 Nesse retorno temos um pequeno spoiler sobre nosso serviço mas a gente chega lá, agora o próximo problema é como criar novos veículos e usuários.
-## Inserindo dados pelo nosso controller
-Agora precisamos inserir dados pelo nosso controller então precisaremos do método POST, porém quando recebermos dados do nosso cliente é necessário formatar isto em classes também, e se o que precisar ser cadastrado for diferente do que retornamos em nossos DTO's?
+## Inserindo dados pelo controller
+Nesse instante o próximo passo é cadastrar dados pelo endpoint, dessa forma será necessário o uso do verbo POST, neste ponto também é necessário formatar os dados recebidos pela requisição em classes, mas como visto anteriormente nossos DTO's são visualizações específicas das entidades, portanto os dados inseridos são modelos diferentes dos nossos DTO's.
 ## Classes Form
-Para separar os arquivos que tratam de retorno de dados ao nosso usuário e os arquivos que se referem aos dados que o cliente nos envia para salvar criaremos classes novas chamadas de form's.
+Para separar os arquivos que tratam de retorno de dados ao nosso usuário e os arquivos que se referem aos dados que o cliente nos envia para salvar, criaremos classes novas chamadas de form's.
+* Classe form de usuário
 ```Java
 public class UserForm {
     @NotNull
@@ -465,6 +496,7 @@ public class UserForm {
     }
 }
 ```
+* Classe form de veículo
 ```Java
 public class VehicleForm {
     @NotNull
@@ -486,10 +518,17 @@ public class VehicleForm {
 }
 ```
 ## Bean Validation
-Essas anotações dentro dos nossos forms nos dizem quais restrições são aplicadas a cada campo da classe, isso é uma abordagem muito interessante de velidação do java afinal elimina muito código que seria necessário para esse tipo de validação em nossos controllers sendo necessário apenas um pequeno conjunto de anotações em cada classe de upload de dados e dizer ao nosso controller para validar aqueles valores.
+Nossa implementação de cadastro de dados está funcionando, porém o que acontece quando o cliente que consome nossa API não manda todos os campos necessários? insere valores nulos nos campos? Manda o hino do Flamengo num campo inteiro?.
 
-## Escrevendo os endpoints
+Como não podemos confiar que nosso usuário sempre inserirá os dados corretamente é preciso validar os valores passados para inserção em nossa API.
+
+Uma primeira abordagem que possa vir a mente é criar estruturas condicionais que tratem cada possibilidade de um parametro ser inválido porém isso geraria toneladas de código e está sujeito a não lembrarmos de um caso específico que pode quebrar a aplicação.
+
+Por isso a abordagem de Bean validation é interessante, nela simplesmente declaramos por meio de anotações, restrições a um dado (não deve ser nulo, não pode ser vazio, tamanho mínimo ou máximo) e ao utilizar aquelas classes que modelam a inserção passamos uma anotação que diga ao Spring para verificar as restrições mapeadas e nos expelir um erro caso algo não ocorra bem.
+
+## Escrevendo os métodos de inserção no endpoint
 Agora em nossos endpoints vamos escrever o mapeamento das requisições que inserem novos dados no banco.
+* Inserindo método de criação de usuário
 ```Java
 @RestController
 public class UsersController {
@@ -515,7 +554,9 @@ public class UsersController {
 ```
 Em nosso controller de usuários criamos nossa variável do tipo de nossa entidade e recebemos a conversão do valor mapeado pelo form, salvamos no banco de dados com o repository e retornamos o link de acesso daquele objeto como cabeçalho da resposta além de um DTO do usuário como corpo.
 
-Aqui e interessante notar que é necessário o uso da anotação @Valid para que o Spring faça nossa validação e que o objeto UserForm é automaticamente mapeado da requisição com a anotação @RequestBody.
+Vale notar o uso da anotação @Valid para inserir o método no Bean validation descrito anteriormente.
+
+* Inserindo método de criação de veículo
 ```Java
 @RestController
 public class VehiclesController {
@@ -561,7 +602,10 @@ Inicialmente aqui nós temos uma especificação muito clara do que nossas funç
 Por isso é um ótimo momento para utilizar o JUnit para criar testes que validem nossas funções e vejam se elas retornam o que deveriam retornar.
 
 Para isso criaremos nosso arquivo de testes no repositório criado por padrão pelo spring e criaremos os testes que validam o retorno do dia do rodízio de um veículo.
+
+* Classe de testes
 ```Java
+package com.cadu.vehicleapi;
 @SpringBootTest
 class VehicleServiceTests {
 	private VehicleService service = new VehicleService();
@@ -677,11 +721,11 @@ public class VehicleService {
         return result;
     }
 ```
-Aqui temos 3 funções que servem para, dado seus atributos retornar da API um valor que posteriormente será utilizado para uma requisição, por exemplo retornar o código interno da API que identifica a marca VolksWagen, para depois utilizá-lo para descobrir o código que identifica o modelo AMAROK, depois descobrir seu ano e por fim seu valor na tabela FIPE.
+Aqui temos 3 funções que servem para, dado seus atributos, retornar da API um valor que posteriormente será utilizado para uma requisição, por exemplo retornar o código interno da API que identifica a marca VolksWagen, depois iremos utilizar este código para descobrir o código que identifica o modelo AMAROK, em seguida descobrir seu ano e por fim seu valor na tabela FIPE.
 
-Aqui é importante ter exceptions que façam com que nosso código nos diga se tem algo errado principalmente com os parâmetros já que um parâmetro errado geraria um efeito em cascata e atrapalharia todo o funcionamento de nossa API.
+Importante frisar a necessidade de ter exceptions que façam com que nosso código nos diga se tem algo errado principalmente com os parâmetros já que um parâmetro errado geraria um efeito em cascata e atrapalharia todo o funcionamento de nossa API.
 
-Após isso vamos nos focar em retornar o dia do rodízio e se o dia passado para o serviço é o dia do rodízio do carro.
+A seguir vamos nos focar em retornar o dia do rodízio e se o dia passado para o serviço é o dia do rodízio do carro.
 ```Java
     public String getRodizioDay(Vehicle vehicle) throws IllegalArgumentException {
         String words[] = vehicle.year.split(" ");
@@ -706,7 +750,7 @@ Após isso vamos nos focar em retornar o dia do rodízio e se o dia passado para
 
 }
 ```
-A ideia é puxar do ano do carro a parte inicial verificar o último dígito e baseado nisso retornar o dia em formato de string, aqui é interessante notar o uso do LocaleContextHolder que é uma implementação do spring que permite que o cliente mande pelo cabeçalho da requisição a linguagem que deseja receber suas respostas, portanto o dia retornado pela API será na linguagem requerida.
+A ideia é puxar do ano do carro a parte inicial, verificar o último dígito e baseado nisso retornar o dia em formato de string, interessante notar o uso do LocaleContextHolder que é uma implementação do Spring que permite que o cliente mande pelo cabeçalho da requisição a linguagem que deseja receber suas respostas, portanto o dia retornado pela API será na linguagem requerida.
 
 A outra função apenas compara o dia passado como parâmetro com o dia de rodízio armazenado no veículo, caso sejam iguais retorna true senão retorna false.
 
@@ -723,7 +767,9 @@ Quê? não? como assim?
 Fizemos todo o caminho feliz contando com a boa vontade de nosso usuário em inserir e requerer dados da forma correta para que tudo dê certo.
 Mas e quando o mundo não for tão bonito assim?
 
-Para isso precisamos nos preparar para que quando nossa aplicação falhe nosso usuário saiba ao menos o que deu errado ao invés de receber logs confusos e infinitos.
+Nesse caso precisamos nos preparar para que quando nossa aplicação falhe nosso usuário tenha uma descrição clara do que deu errado, ao invés de receber logs confusos e infinitos.
+
+Dessa forma vamos criar interceptadores afim de que quando um determinado tipo de erro seja encontrado, uma mensagem amigável seja retornada ao consumidor da API.
 ```Java
 @RestControllerAdvice
 public class ValidationHandler {
@@ -751,17 +797,19 @@ public class ValidationHandler {
     }
 }
 ```
-Para isso vamos criar interceptadores que quando um determinado tipo de erro seja encontrado uma mensagem amigável seja retornada ao consumidor da API.
 
 A principio tratamos 2 erros, quando o usuário passa strings vazias em nosso endpoint para POST, e para quando alguma coisa errada acontece em nossa busca na API, por exemplo nosso usuário ter passado uma marca inexistente.
 
-No primeiro caso criamos uma DTO para dizer como iremos retornar ao usuário nosso erro, aqui temos um campo que diz qual campo da requisição estava errado e um outro campo que armazena o erro propriamente dito.
+No primeiro caso criamos uma DTO para dizer como iremos retornar ao usuário nosso erro, aqui temos um campo que diz qual campo da requisição estava errado e um outro campo que armazena a mensagem que descreve o erro.
 
-Após isso listados todos os erros que foram expelidos pela API em seu Bean Validation (lembra dele?) e para cada um deles armazenamos sua mensagem e a linguagem que o usuário nos passou, por fim retornamos essa lista de erros como um JSON.
+Posteriormente, listados todos os erros que foram expelidos pela API, em seu Bean Validation (lembra dele?), para cada erro armazenamos sua mensagem e a linguagem que o usuário nos passou, finalmente retornamos essa lista de erros como um JSON.
 ![Retornando erros em strings vazias](/images/erros_em_strings_vazias.png "Retornando erros em strings vazias")
 *<center>Figura 10. Retornando erros em strings vazias</center>*
 No segundo caso quando uma exceção de argumento inválido é lançada simplesmente retornamos o texto da exception que criamos no serviço.
 ![Retornando erros em strings inválidas](/images/erro_valores_invalidos.png "Retornando erros em strings inválidas")
 *<center>Figura 11. Retornando erros em strings inválidas</center>*
 
-Agora sim temos nossa api funcional e pronta para uso, melhorias sempre são possíveis claro mas temos um bom começo aqui e podemos deixar nossa criatividade fluir como desenvolvedores pensando em novas funcionalidades ou melhorando nossa qualidade de código.
+Voilá, temos uma API que trata seus erros e se preocupa com informar seus consumidores com mensagens que o ajudem a entender o que ocorreu.
+
+Espero que esse post tenha ajudado a mostrar formas de abordar a construção de uma API REST, alguns problemas comuns e ajude a entender para que servem as principais tecnologias desse universo.
+É importante levar em consideração o contexto de sua aplicação sempre para tomar as melhores decisões sobre tecnologias e formas de lidar com determinadas situações, então tudo que está aqui descrito é um grande depende e está condicionado a nosso domínio da aplicação.
