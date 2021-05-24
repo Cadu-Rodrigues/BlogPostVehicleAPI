@@ -1,19 +1,22 @@
-# Criando uma API com Spring Boot + Hibernate
+# Criando uma API REST com Spring Boot + Hibernate
+Consumir dados de terceiros é uma parte crucial do desenvolvimento de aplicações web, para isso desenvolvedores disponibilizam rotinas em um formato padronizado que chamamos  de API's (Aplication Program Interface), que são interfaces responsáveis por disponibilizar dados de um software a um outro software, atualmente a arquitetura REST é utilizada para retornar nossos dados estruturados com mensagens significativas.
 
-Conhecer tecnologias e aprender novos contextos é sempre revigorante e nada melhor para utilizar nesse momento do que um projeto brinquedo para testar os conhecimentos.
+Juntando essa necessidade e uma das linguagens mais utilizadas no mundo nasce o Spring, um framework para desenvolvimento de aplicações java em várias plataformas diferentes, cuja especificação Spring Boot,voltada para web, é uma das tecnologias mais difundidas para esse intuito.
+
+Neste post vamos construir uma API baseada em um projeto brinquedo, cujo objetivo é gerenciar veículos, para entendermos melhor como e porque utilizar essa stack de tecnologias.
 
 O código completo desta implementação se encontra neste [link](https://github.com/Cadu-Rodrigues/vehicleapi)
-
-Neste post vamos destrinchar o mundo do Java para construção de API's com uma API de gerenciamento de veículos.
 Tecnologias Utilizadas:
 
-* Maven: Um gerenciador de pacotes que vai facilitar o processo de instalação de dependências.
-* Spring Boot: Um framework mundialmente difundido para construções de aplicações web dos mais variados tipos em Java.
-* Hibernate: Uma biblioteca de abstração de mapeamento Objeto-Relacional
-* H2: um banco de dados em memória (para fins de simplicidade)
-* Uma IDE de seu feitio (Eclipse,Intellij e para os mais ousadas até mesmo um vscode :)).
+* Maven: Nosso gerenciador de pacotes, seu papel é fazer toda a instalação de bibliotecas/dependências que não venham por padrão no java.
+* [Spring Boot](https://spring.io/projects/spring-boot): Um dos projetos do ecossistema Spring, o Spring Boot é um pacote que insere funcionalidades deste ecossistema, um servidor que hospeda nossa aplicação para testes locais e facilita o trabalho de configuração do nosso projeto java.
+* Hibernate: Nossa biblioteca de mapeamento Objeto-Relacional, o Hibernate é utilizado para criar mapeamentos entre o paradigma Orientado a Objetos do java e o modelo relacional do SQL.
+* Spring JPA: Uma implementação da JPA (especificação que dita como os ORM's devem ser utilizados) que utiliza o Hibernate e cria mapeamentos de nossas classes para tabelas no nosso banco de dados, utilizaremos para reduzir a quantidade de código necessária para consumir nosso banco de dados.
+* H2: Um banco de dados que utiliza a linguagem SQL e que nos possibilita subir um banco de dados na memória do servidor (ou do nosso computador, caso o projeto esteja rodando localmente), para que seja nossa fonte de dados e seja simples de implementar.
+* Uma IDE de seu feitio (Eclipse, Intellij e para os mais ousados até mesmo um vscode :)).
 ## Conhecendo nosso escopo 
-Claro que antes de começar nosso desenvolvimento precisamos saber o que vamos desenvolver, para este artigo temos um contexto pré-determinado que iremos seguir para aprendizado.
+
+Claro que antes de começar nosso desenvolvimento precisamos saber o que vamos desenvolver, para este artigo temos uma especificação de requisitos que iremos seguir para aprendizado.
 Vamos desenvolver uma API REST que precisará controlar veículos de usuários.
 
 O primeiro passo deve ser a construção de um cadastro de usuários, sendo obrigatórios: nome, e-mail, CPF e data de nascimento, sendo que e-mail e CPF devem ser únicos.
@@ -42,8 +45,8 @@ Exemplo B: hoje é quinta-feira, o carro é da marca Hyundai, modelo HB20 do ano
 - Caso a busca esteja correta, é necessário voltar o status 200. Caso haja erro na busca, retornar o status adequado e uma mensagem de erro amigável.
 
 ## Criando os modelos de dados
-Vamos começar criando nossas classes que vão mapear nossos dados para o banco de dados. O spring JPA é uma implementação da JPA que utiliza o Hibernate e que auxilia a manipulação de objetos e seu mapeamento para o banco de dados, para utilizá-lo vamos criar nossas classes User e Vehicle.
-Classe Users
+Vamos começar criando nossas classes que vão mapear os dados para o banco de dados. Aqui entra em cena o Spring JPA, com ele é possível criar classes que representam entidades e associá-las as tabelas que criaremos em nosso banco de dados, nas entidades mapearemos chaves primárias, entidades que estão contidas nesta entidade, a tabela associada àquela entidade no banco entre outras sobrescrições possíveis, sendo feito por meio de anotações marcadas com @.
+* Classe Users
 ``` Java
 package com.cadu.vehicleapi.model;
 
@@ -73,7 +76,7 @@ public class User {
     }
 }
 ```
-Classe Vehicle
+* Classe Vehicle
 ``` Java
 package com.cadu.vehicleapi.model;
 @Entity
@@ -102,17 +105,20 @@ public class Vehicle {
 
 }
 ```
-Nestas classes estamos mapeando as entidades que vamos manipular no banco de dados, com as anotações definidas pelo caractere @ mapeamos diretrizes para que o spring JPA gere determinadas facilidades para nosso código.
+Cada classe é mapeada como entidade pela anotação *@Entity* e está associada a uma tabela do banco definida pela anotação *@Table* que define o nome da tabela a ser associada, além disso todas as nossas entidades precisam conter uma [chave primária](https://pt.wikipedia.org/wiki/Chave_prim%C3%A1ria) cujo mapeamento é dado por *@Id*, no caso das chaves primárias também é preciso definir a estratégia de geração do valor nas tabelas com o *@GeneratedValue*, para nosso contexto será utilizada a estratégia [identity](https://www.devmedia.com.br/jpa-como-usar-a-anotacao-generatedvalue/38592).
 
-Inicialmente temos a anotação *@Entity* que define uma determinada classe como uma entidade da JPA, em seguida mapeamos essa entidade para uma tabela com *@Table*, por padrão o JPA tenta mapear uma entidade para uma tabela com o exato mesmo nome, porém como queremos manter nomes diferentes é necessário passar o atributo *name* como parâmetro, o mesmo ocorre com a anotação *@Column* que mapeia uma variável a uma coluna de uma determinada tabela em nosso banco.
+Utilizamos também a anotação *@Column*, por padrão o Spring JPA mapeia nossos atributos com seu nome para o banco de dados, porém caso os valores sejam diferentes entre nossa entidade e nosso banco (por usar estratégias diferentes de nomeação como [camelCase](https://pt.wikipedia.org/wiki/CamelCase) e [snake_case](https://en.wikipedia.org/wiki/Snake_case) por exemplo) podemos utilizar essa anotação para criar nosso mapeamento.
 
-Após esta marcação inicial precisamos declarar nossos atributos do banco de dados como variáveis em nossa classe (aqui o tipo de acesso está público para todas as variáveis a título de simplificação já que não serão utilizados conceitos de encapsulamento).
+Também precisamos mapear nossos relacionamentos, um veículo possui um dono e um usuário possui vários veículos, portanto temos as relações:
+* 1 User - possui - N Veículos
+* 1 Veículo - possui - 1 dono
+  
+Para isso declaramos uma lista de entidades vehicle em nossa entidade user e uma entidade user dentro de nossa entidade vehicle, para mapear esse relacionamento precisamos dizer nas entidades o tipo de relação que está ali contida:
+* Na classe vehicle temos Many vehicles To one owner por isso é utilizada a notação *@ManyToOne*
+* Na classe user temos One user To many vehicles por isso é utilizada a notação *@OneToMany*
+* Por fim para marcar que essas duas anotações tratam de um único relacionamento entre vehicle e user utilizados o parâmetro mapped by e o campo correlato na outra entidade como parâmetro.
 
-É também necessário definir qual de nossas variáveis é a chave primária da entidade no banco de dados com a anotação *@Id*, além dela precisamos marcar que este valor será gerado automaticamente pelo nosso banco e que por isto será passado como nulo à nossa entidade, com isso precisamos passar a estratégia de geração de valor (que nesse caso será a identity) e finalizamos a descrição do nosso ID.
-
-Além disso existe o mapeamento dos nossos relacionamentos, como um veículo possui um dono e um usuário pode ter N veículos é necessário escrever nas duas entidades anotações que mapeiem este relacionamento Um para Muitos, para isso se insere a anotação @ManyToOne e a anotação @OneToMany, sendo necessário na segunda especificar qual campo está mapeando esta relação para evitar duplicidades.
-
-Por fim precisamos apenas mapear nossos construtores (lembrando que a JPA necessita de um construtor vazio) e temos nossas entidades construídas.
+Para finalizar nossas entidades declaramos nossos métodos construtores, sempre lembrando que o Spring JPA necessita de um construtor vazio declarado para realizar de forma correta seu mapeamento.
 ## Criando o banco de dados em memória
 Bom nosso modelo agora mapeia nossas classes para as tabelas do banco de dados... mas que banco de dados? afinal ainda não criamos nada que seja utilizado por esse mapeamento como banco de dados. Bom ai que entra nosso querido H2, poderiam ser utilizados vários bancos de dados aqui você provavelmente deve conhecer vários como MySQL,SQL Server, Mongodb etc, porém como queremos nos concentrar na API e na usabilidade a ideia é utilizar um banco de dados que seja descartável e demande pouco esforço.
 
