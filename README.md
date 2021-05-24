@@ -474,7 +474,7 @@ Testando o retorno temos.
 Nesse retorno temos um pequeno spoiler sobre nosso serviço mas a gente chega lá, agora o próximo problema é como criar novos veículos e usuários.
 ## Inserindo dados pelo controller
 Nesse instante o próximo passo é cadastrar dados pelo endpoint, dessa forma será necessário o uso do verbo POST, neste ponto também é necessário formatar os dados recebidos pela requisição em classes, mas como visto anteriormente nossos DTO's são visualizações específicas das entidades, portanto os dados inseridos são modelos diferentes dos nossos DTO's.
-## Classes Form
+### Classes Form
 Para separar os arquivos que tratam de retorno de dados ao nosso usuário e os arquivos que se referem aos dados que o cliente nos envia para salvar, criaremos classes novas chamadas de form's.
 * Classe form de usuário
 ```Java
@@ -517,7 +517,7 @@ public class VehicleForm {
     }
 }
 ```
-## Bean Validation
+### Bean Validation
 Nossa implementação de cadastro de dados está funcionando, porém o que acontece quando o cliente que consome nossa API não manda todos os campos necessários? insere valores nulos nos campos? Manda o hino do Flamengo num campo inteiro?.
 
 Como não podemos confiar que nosso usuário sempre inserirá os dados corretamente é preciso validar os valores passados para inserção em nossa API.
@@ -526,7 +526,7 @@ Uma primeira abordagem que possa vir a mente é criar estruturas condicionais qu
 
 Por isso a abordagem de Bean validation é interessante, nela simplesmente declaramos por meio de anotações, restrições a um dado (não deve ser nulo, não pode ser vazio, tamanho mínimo ou máximo) e ao utilizar aquelas classes que modelam a inserção passamos uma anotação que diga ao Spring para verificar as restrições mapeadas e nos expelir um erro caso algo não ocorra bem.
 
-## Escrevendo os métodos de inserção no endpoint
+### Escrevendo os métodos de inserção no endpoint
 Agora em nossos endpoints vamos escrever o mapeamento das requisições que inserem novos dados no banco.
 * Inserindo método de criação de usuário
 ```Java
