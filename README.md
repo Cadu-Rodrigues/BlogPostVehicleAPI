@@ -152,7 +152,6 @@ Neste arquivo definimos quais drivers de banco de dados utilizar, a url em que o
 Tudo bem bonito mas como inserimos nossos dados e tabelas? Mais uma vez o Spring salva nossa vida, por padrão ele executa nesse mesmo diretório resources o arquivo como nome data.sql, basta criar este arquivo com os códigos SQL que queremos executar em nosso banco e a magia ocorre.
 ```SQL
 DROP TABLE IF EXISTS Users CASCADE;
-
 DROP TABLE IF EXISTS Vehicles CASCADE;
 
 CREATE TABLE Users (
@@ -172,68 +171,23 @@ CREATE TABLE Vehicles (
     Owner_id INT
 );
 
-INSERT INTO
-    Users (Name, Email, CPF, Birthdate)
-VALUES
-    (
-        'Carlos',
-        'CarlosEmail@email.com',
-        1234,
-        '1988-05-05'
-    );
+INSERT INTO Users (Name, Email, CPF, Birthdate)
+VALUES ('Carlos','CarlosEmail@email.com',1234,'1988-05-05');
 
-INSERT INTO
-    Users (Name, Email, CPF, Birthdate)
-VALUES
-    (
-        'Amadeu',
-        'AmadeuEmail@email.com',
-        4321,
-        '1989-05-05'
-    );
+INSERT INTO Users (Name, Email, CPF, Birthdate)
+VALUES ('Amadeu','AmadeuEmail@email.com',4321,'1989-05-05');
 
-INSERT INTO
-    Users (Name, Email, CPF, Birthdate)
-VALUES
-    (
-        'Robson',
-        'RobsonEmail@email.com',
-        3333,
-        '1964-05-05'
-    );
+INSERT INTO Users (Name, Email, CPF, Birthdate)
+VALUES ('Robson','RobsonEmail@email.com',3333,'1964-05-05');
 
-INSERT INTO
-    Vehicles (Brand, Model, Year, Value, Owner_id)
-VALUES
-    (
-        'Ford',
-        'Fiesta 1.6 16V Flex Aut. 5p',
-        '2016 Gasolina',
-        '10000',
-        1
-    );
+INSERT INTO Vehicles (Brand, Model, Year, Value, Owner_id)
+VALUES ('Ford','Fiesta 1.6 16V Flex Aut. 5p','2016 Gasolina','10000',1);
 
-INSERT INTO
-    Vehicles (Brand, Model, Year, Value, Owner_id)
-VALUES
-    (
-        'Ford',
-        'Fusion 2.5L I-VCT Flex Aut.',
-        '2016 Gasolina',
-        '20000',
-        2
-    );
+INSERT INTO Vehicles (Brand, Model, Year, Value, Owner_id)
+VALUES ('Ford','Fusion 2.5L I-VCT Flex Aut.','2016 Gasolina','20000',2);
 
-INSERT INTO
-    Vehicles (Brand, Model, Year, Value, Owner_id)
-VALUES
-    (
-        'Ford',
-        'Ka 1.0 8V/1.0 8V ST Flex 3p',
-        '2013 Gasolina',
-        '30000',
-        1
-    );
+INSERT INTO Vehicles (Brand, Model, Year, Value, Owner_id)
+VALUES ('Ford','Ka 1.0 8V/1.0 8V ST Flex 3p','2013 Gasolina','30000',1;
 ```
 Finalizado isto teremos uma estrutura de diretórios parecida com isto:
 
